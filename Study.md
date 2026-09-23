@@ -10,6 +10,14 @@ Unity 6.0 ECS를 대략 알고 있는 상태에서, 6.6(Editor 6000.6.2f1, `com.
 
 ---
 
+### 2026-09-23 — 기본 ECB System 목록과 `CreateCommandBuffer(WorldUnmanaged)` 내부 (6.0 대비 변경 없음)
+
+- 기본 ECB System은 9개: Begin/End × Initialization, FixedStepSimulation, VariableRateSimulation, Simulation + `BeginPresentation`. `EndPresentation`은 없음. 각 그룹에서 `OrderFirst`/`OrderLast`로 배치됨.
+- `Singleton.CreateCommandBuffer(state.WorldUnmanaged)` 내부 동작 (`EntityCommandBufferSystem.cs`):
+  - ECB System의 전용 allocator로 ECB를 만들고, 그 System의 `PendingBuffers` 목록에 등록함. playback이 끝나면 Dispose하고 allocator를 Rewind함 → 직접 `Dispose`하지 않아도 됨.
+  - `world` 인자는 `world.ExecutingSystem`을 읽어 **어느 System이 만든 ECB인지**(`OriginSystemHandle`) 기록하는 데 쓰임 → playback 에러 메시지와 디버깅용.
+- `WorldUnmanaged`: managed `World` 클래스의 unmanaged(struct) 버전. `ISystem`/Burst 안에서는 `World`를 쓸 수 없어서 대신 사용함.
+
 ### 2026-09-23 — `ValueRO`로 `LocalTransform.Up()` 호출 시 "impure method" 경고 (6.0 대비 변경 없음)
 
 - `ValueRO`는 `ref readonly T`를 반환하고, `LocalTransform`은 `readonly struct`가 아니며 `Up()`/`Right()`에도 `readonly`가 붙어 있지 않음 → C# 컴파일러가 호출 전에 **방어적 복사(defensive copy)**를 하고, IDE(Rider 등)가 경고를 띄움.

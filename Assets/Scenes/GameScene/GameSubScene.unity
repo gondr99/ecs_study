@@ -226,8 +226,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Players.PlayerAuthoring
   moveSpeed: 5
   bulletPrefab: {fileID: 4382908742809521485, guid: 90367bb86feade24f92a825587cbc58e, type: 3}
-  numOfBulletToSpawn: 50
-  bulletSpread: 5
+  numOfBulletToSpawn: 10
+  bulletSpread: 8.68
+  fireInterval: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
