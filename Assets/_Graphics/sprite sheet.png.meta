@@ -209,7 +209,9 @@ TextureImporter:
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
+  spriteTessellationMethod: 0
   spriteTessellationDetail: -1
+  spriteGeometrySubdivision: -1
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
@@ -319,7 +321,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sprite sheet_3
+      name: enemy_ship_small
       rect:
         serializedVersion: 2
         x: 88
@@ -1412,6 +1414,7 @@ TextureImporter:
     nameFileIdTable:
       bullet: 3601896018785469696
       enemy_ship: -2414436457622989289
+      enemy_ship_small: -8717975482313926904
       large_player: -5207231776682384544
       small_player: 7354323013337099971
       sprite sheet_1: -8533962960574808602
@@ -1435,7 +1438,6 @@ TextureImporter:
       sprite sheet_27: 3393120481802264058
       sprite sheet_28: 6261688788334717931
       sprite sheet_29: 6620609707869297025
-      sprite sheet_3: -8717975482313926904
       sprite sheet_30: -349570762012434872
       sprite sheet_32: 6467759394570865352
       sprite sheet_33: -8308799573389957035

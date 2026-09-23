@@ -10,6 +10,22 @@ Unity 6.0 ECS를 대략 알고 있는 상태에서, 6.6(Editor 6000.6.2f1, `com.
 
 ---
 
+### 2026-09-23 — IJobEntity 내부 동작 (6.0 대비 변경 없음)
+
+소스 제너레이터 코드(`JobEntityGenerator/`)로 확인한 내용.
+
+- `partial struct MyJob : IJobEntity`는 소스 제너레이터가 **`IJobChunk`로 바꿔서** 구현함. 생성된 `Execute(in ArchetypeChunk chunk, ...)`가 chunk마다 component 배열 포인터를 한 번 얻은 뒤, `for` 루프로 사용자가 작성한 `Execute(ref A, in B)`를 entity마다 호출함.
+- Query는 `Execute` 파라미터(`ref`는 RW, `in`은 RO)와 `[WithAll]`/`[WithNone]` 등으로 만들어지고, System의 `OnCreateForCompiler`에서 한 번만 생성됨. `job.ScheduleParallel(dep)` 호출은 System 쪽에서 `JobChunkExtensions.ScheduleParallelByRef(ref job, query, dep)`로 바뀜.
+- 병렬 작업 단위는 **chunk**라서, 같은 chunk는 한 worker만 처리함 → 같은 component에 `ref`로 써도 안전함.
+- Query에 enableable component가 있을 때만 enabled mask를 검사하는 코드가 생성됨(bit range 방식이나 64bit mask 방식). 없으면 단순한 `for` 루프만 생성됨.
+
+### 2026-09-23 — ECS용 2D Physics 현황 (6.0 대비: Entities 통합은 여전히 없음, 대신 PhysicsCore2D가 새로 생김)
+
+- `com.unity.physics`(Unity Physics)는 여전히 3D 전용. Entities와 통합된 공식 2D Physics 패키지(Baker, `PhysicsWorldSingleton` 같은 것)는 아직 없음. 예전 `com.unity.2d.entities`(Project Tiny, 0.22-preview)는 폐기된 패키지임.
+- 새로 생긴 것: 6.3에 Box2D v3 기반 **LowLevelPhysics2D**가 추가됐고, 6.5에서 **PhysicsCore2D**로 이름이 바뀜 (namespace `UnityEngine.LowLevelPhysics2D` → `Unity.U2D.Physics`). 객체를 struct handle로 다루고 multithread를 지원해서 ISystem/Job 안에서 직접 호출할 수 있음.
+- 그래서 선택지는: (a) 예전처럼 3D Unity Physics를 Z축과 회전을 고정해서 쓰기 (Baker와 Query가 다 있어서 제일 편함), (b) PhysicsCore2D world/body를 직접 만들고 Entity와 동기화하는 시스템을 직접 작성하기, (c) 단순한 top-down 충돌이면 물리 엔진 없이 직접 AABB나 원 판정하기.
+- 주의: GameObject용 `Rigidbody2D`/`Collider2D`는 Baking되지 않음 (Baker가 없음).
+
 ### 2026-09-23 — 기본 ECB System 목록과 `CreateCommandBuffer(WorldUnmanaged)` 내부 (6.0 대비 변경 없음)
 
 - 기본 ECB System은 9개: Begin/End × Initialization, FixedStepSimulation, VariableRateSimulation, Simulation + `BeginPresentation`. `EndPresentation`은 없음. 각 그룹에서 `OrderFirst`/`OrderLast`로 배치됨.

@@ -1,3 +1,4 @@
+using Players;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -5,6 +6,7 @@ using UnityEngine.InputSystem;
 
 namespace CoreSystem
 {
+    [UpdateInGroup(typeof(InitializationSystemGroup))]
     public partial class PlayerInputSystem : SystemBase, Controls.IPlayerActions
     {
         private Controls _controls;

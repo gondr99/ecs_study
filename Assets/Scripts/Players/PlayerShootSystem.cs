@@ -35,7 +35,7 @@ namespace Players
             EntityCommandBuffer ecb = ecbSystem.CreateCommandBuffer(state.WorldUnmanaged);
 
             foreach (var (shooter, localTrm) in SystemAPI.Query<RefRW<ShooterComponent>, RefRO<LocalTransform>>()
-                         .WithAll<PlayerComponent>())
+                         .WithAll<PlayerTag>())
             {
                 //쿨다운 중에는 읽기만 하고, 실제로 발사할 때만 NextFireTime을 쓴다.
                 if (now < shooter.ValueRO.NextFireTime)
@@ -50,7 +50,7 @@ namespace Players
                     float spreadValue = shooter.ValueRO.BulletSpread;
                     float spreadRad = math.radians( _random.NextFloat(-spreadValue, spreadValue));
                     LocalTransform trm = localTrm.ValueRO;
-                    float3 spawnPosition = trm.Position + trm.Up() * 1.5f;
+                    float3 spawnPosition = trm.Position + trm.Up() * 0.5f;
 
                     quaternion fireRot = math.mul(trm.Rotation, quaternion.RotateZ(spreadRad));
                     

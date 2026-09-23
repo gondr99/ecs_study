@@ -18,11 +18,8 @@ namespace Players
             {
                 Entity playerEntity = GetEntity(TransformUsageFlags.Dynamic);
 
-                AddComponent(playerEntity, new PlayerComponent
-                {
-                    MoveSpeed = authoring.moveSpeed
-                });
-
+                AddComponent<PlayerTag>(playerEntity);
+                
                 AddComponent(playerEntity, new ShooterComponent
                 {
                     BulletPrefab = GetEntity(authoring.bulletPrefab, TransformUsageFlags.Dynamic),
