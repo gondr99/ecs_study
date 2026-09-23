@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## conversation rules
+Your answer text must be translate to korean. except code, Proper noun, Core concept
+
 ## Project purpose
 
 This is a personal study project for Unity ECS (DOTS). The user already knows the basics of ECS as it existed in **Unity 6.0**, and is using this project to learn what changed and what's new in **Unity 6.6** (`com.unity.entities` 6.6.0, Editor 6000.6.2f1) by building small experiments.
