@@ -10,6 +10,13 @@ Unity 6.0 ECS를 대략 알고 있는 상태에서, 6.6(Editor 6000.6.2f1, `com.
 
 ---
 
+### 2026-09-23 — `ValueRO`로 `LocalTransform.Up()` 호출 시 "impure method" 경고 (6.0 대비 변경 없음)
+
+- `ValueRO`는 `ref readonly T`를 반환하고, `LocalTransform`은 `readonly struct`가 아니며 `Up()`/`Right()`에도 `readonly`가 붙어 있지 않음 → C# 컴파일러가 호출 전에 **방어적 복사(defensive copy)**를 하고, IDE(Rider 등)가 경고를 띄움.
+- 실제 문제는 없음: `Up()`은 값을 바꾸지 않아서 결과가 같고, 복사도 32바이트뿐이라 Burst에서는 사실상 공짜.
+- 경고를 없애려면: `LocalTransform t = localTrm.ValueRO;`로 한 번 명시적으로 복사한 뒤 `t.Up()`을 호출하거나, `math.mul(rot, math.up())`처럼 직접 계산함.
+- `ValueRW`(`ref T`)에서는 복사가 없어서 경고도 뜨지 않음. 하지만 읽기만 하려고 `RefRW`를 요청하는 건 change version 때문에 손해임.
+
 ### 2026-09-23 — SystemAPI 소스 제너레이터가 기존 메서드를 바꾸는 방법 (6.0 대비 변경 없음)
 
 Roslyn 소스 제너레이터는 파일 추가만 가능한데, `OnUpdate` 안의 `SystemAPI.Query`가 어떻게 바뀌나?
