@@ -157,7 +157,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Agents.AgentAuthoring
   moveSpeed: 2
-  maxHitPoint: 30
+  maxHitPoint: 2
   deathEffectPrefab: {fileID: 2688923977752276751, guid: 2fc5af60a7fdc1e4c9681ffd6d1bd04e, type: 3}
 --- !u!114 &7628792474170123932
 MonoBehaviour:

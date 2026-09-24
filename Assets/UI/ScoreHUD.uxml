@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/ScoreHUD.uss?fileID=7433441132597879392&amp;guid=6227e3f084f42ee45a0224caf6214ba5&amp;type=3#ScoreHUD"/>
+    <ui:VisualElement name="hud-root" picking-mode="Ignore" class="hud-root">
+        <ui:Label name="score-label" text="Score: 0" picking-mode="Ignore" authoring-id="-456718535" class="score-label"/>
+    </ui:VisualElement>
+</ui:UXML>

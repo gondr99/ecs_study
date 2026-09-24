@@ -10,6 +10,48 @@ Unity 6.0 ECS를 대략 알고 있는 상태에서, 6.6(Editor 6000.6.2f1, `com.
 
 ---
 
+### 2026-09-24 — `World.DefaultGameObjectInjectionWorld` (6.0 대비 변경 없음)
+
+- `World`의 `public static World { get; set; }` 프로퍼티다. `DefaultWorldInitialization.Initialize`가 기본 World("Default World")를 만들 때 값을 넣는다. 시스템 **밖**의 코드(MonoBehaviour, Editor 도구)가 World에 접근할 때 쓰는 진입점이다. 시스템 안에서는 `state.World`/`World`를 쓴다.
+- null인 경우: 기본 World가 만들어지기 전, Dispose된 후, `ICustomBootstrap`이 false를 반환하거나 `UNITY_DISABLE_AUTOMATIC_SYSTEM_BOOTSTRAP`을 쓸 때. 그래서 `null`과 `IsCreated`를 먼저 확인한다.
+- setter가 public이라 다른 World를 넣으면 이 값을 읽는 모든 코드(Entity Inspector 포함)가 그 World를 보게 된다.
+- 이름은 예전(0.x) GameObject를 이 World로 "inject"하던 변환 방식에서 왔다(`World.Active`의 후속). 지금은 "기본 World"라는 의미만 남았다.
+
+### 2026-09-24 — UI Toolkit: `UIDocument` 대신 `PanelRenderer` (6.6 신규)
+
+- 6.6에는 `UIDocument`와 같은 역할을 하는 `PanelRenderer`가 새로 생겼다. `Renderer`를 상속하며 `panelSettings`와 `visualTreeAsset`을 가진다. `UIDocument`는 아직 `[Obsolete]`가 아니고, 둘 다 `IPanelComponent`를 구현한다.
+- **`rootVisualElement`는 internal이라 쓸 수 없다.** 대신 `RegisterUIReloadCallback((renderer, root, version) => ...)`(`VersionedUIReloadCallback`)으로 root를 받는다. 이미 로드된 상태에서 등록하면 **즉시 한 번 호출된다**(직접 확인함). UXML이 live reload되면 새 root로 다시 호출되므로, `Q<Label>()`로 찾은 참조는 콜백 안에서 갱신한다.
+- ⚠️ `(renderer, root)` 2인자 `UIReloadCallback` 오버로드는 **6.6에서 이미 `[Obsolete]`**다. `version`이 이전과 같으면 UI가 실제로 바뀌지 않은 것이므로 다시 찾는 작업을 건너뛴다. 메서드 그룹을 넘길 때 시그니처가 2인자면 obsolete 쪽에 바인딩되고 warning만 뜨므로 주의한다.
+- `OnEnable`에서 Register, `OnDisable`에서 `UnregisterUIReloadCallback`을 호출한다(같은 versioned 오버로드).
+- 반대 방향: `PanelRenderer.FindPanelRenderer(VisualElement)`로 element가 속한 PanelRenderer를 찾을 수 있다.
+
+### 2026-09-24 — `VisualElementReference<T>`: element를 `Q()` 대신 Inspector에서 직렬화 (6.6 신규)
+
+- `[SerializeField] VisualElementReference<Label> _ref;`를 선언하면 Inspector에 선택기(`VisualElementReferencePropertyDrawer`)가 뜬다. `PanelRenderer`의 UI에서 element를 골라 넣는다. 이 방식은 `PanelRenderer` 전용이고 `UIDocument`에서는 쓸 수 없다.
+- 직렬화되는 값은 `m_PanelRenderer`와 `m_AuthoringPath.m_PathIds`(int 배열)다. 이름이 아니라 UXML의 **`authoring-id` 속성** 기반이라 `name`을 바꿔도 참조가 유지된다.
+- 직접 작성한 UXML에는 `authoring-id`가 없다. 선택기로 고르면 에디터가 UXML 파일을 다시 써서 해당 element에 `authoring-id="..."`를 추가한다(`VisualElementReferenceTools.AddMissingAuthoringIds`). 경로는 계층 전체가 아니라 템플릿 중첩 단위라서, 같은 UXML 안의 element는 ID가 하나다.
+- 런타임: `RegisterReferenceResolvedCallback(Action<T>)`으로 element를 받는다. 이미 resolve됐으면 즉시 호출된다. `RegisterReferenceUnloadedCallback`은 live reload 등으로 문서가 파괴될 때 호출되니, 여기서 캐시를 비운다. `OnEnable`에서 Register, `OnDisable`에서 Unregister한다.
+- 호출 순서 실측(Play Mode, `visualTreeAsset` 교체 + `EditorApplication.Step()`):
+  - Register 시점에 이미 resolve돼 있으면 → 그 자리에서 **동기**로 `Resolved` 호출.
+  - 문서가 파괴되면 → **다음 프레임**에 `Unloaded(옛 element)` 호출. 인자는 이전에 받은 **같은 인스턴스**이고, 이미 panel에서 떨어져 있다(`panel == null`). 옛 element에 걸었던 이벤트를 해제하는 데 쓸 수 있다.
+  - 다시 로드되면 → `Resolved(새 인스턴스)` 호출. **이 시점에는 아직 `panel == null`**이고 같은 프레임 안에서 붙는다. 그래서 `Resolved` 안에서 `resolvedStyle`, `worldBound`, `panel`에 의존하는 코드를 쓰면 안 된다(text 설정, 이벤트 등록은 괜찮다). 같은 프레임의 `UIReloadCallback`은 `Resolved` 다음에 오고, 그때는 root가 panel에 붙어 있다.
+  - `enabled`를 껐다 켜는 것만으로는 문서가 다시 만들어지지 않는다(콜백 없음).
+  - `UIReloadCallback`의 version은 `visualTreeAsset = null`처럼 빈 문서가 될 때도 증가한다.
+
+### 2026-09-24 — ECS 데이터를 UI Toolkit에 표시하기 (6.0 대비 변경 없음)
+
+- UI(`UIDocument`/`PanelRenderer`)는 GameObject이므로 SubScene이 아니라 일반 Scene에 둔다. MonoBehaviour가 `World.DefaultGameObjectInjectionWorld.EntityManager`로 만든 `EntityQuery`에서 `TryGetSingleton`으로 읽는 방식이 제일 단순하다.
+- 점수 싱글톤은 bake할 데이터가 없어서 System `OnCreate`에서 `EntityManager.CreateSingleton<T>()`로 만든다.
+- 죽은 적 수는 `WithAll<EnemyTag, DestroyEntityFlag>()` 쿼리의 `CalculateEntityCount()`로 한 번에 센다. enableable component의 enabled bit도 반영된다. 반대로 `EntityManager.CreateEntityQuery(typeof(DestroyEntityFlag))`로 만든 쿼리도 **꺼진 엔티티는 제외된다**. 모두 가져오려면 `EntityQueryOptions.IgnoreComponentEnabledState`를 쓴다.
+- `Label.text`는 쓸 때마다 layout/repaint가 다시 일어나므로 값이 바뀌었을 때만 쓴다.
+
+### 2026-09-24 — ECS에서 사운드 재생 + 6.6에서 managed component deprecated
+
+- Entities에는 오디오 API가 없다(6.0과 동일). Burst 시스템은 싱글톤 `DynamicBuffer<PlaySoundRequest>`에 요청만 `Add`하고, `PresentationSystemGroup`의 `SystemBase`가 main thread에서 `AudioSource.PlayOneShot`으로 재생한 뒤 buffer를 `Clear`한다. SubScene의 GameObject는 bake 후 사라지므로 `AudioSource`는 런타임에 직접 만든다.
+- **6.6 변경점:** class `IComponentData`(managed component), `IBaker.AddComponentObject`, `EntityManager.GetComponentObject`, `SystemAPI.ManagedAPI`가 모두 **deprecated**(CS0618, "First deprecated in 6.6")다. managed ISharedComponentData도 없어질 예정이다. 6.0에서는 AudioClip 같은 UnityEngine.Object를 managed component에 넣는 게 흔했다.
+- 대신 unmanaged struct에 `UnityObjectRef<T>`를 넣는다. Baker에서는 `Clip = audioClip`처럼 암시적 변환으로 넣고, main thread에서 `.Value`로 실제 객체를 꺼낸다. 배열은 `IBufferElementData`로 바꾼다.
+- 생산자 시스템은 `RequireForUpdate<PlaySoundRequest>` 대신 `SystemAPI.TryGetSingletonBuffer`를 쓴다. 사운드 싱글톤이 없어도 발사/폭발 로직은 계속 돌아야 하기 때문이다.
+
 ### 2026-09-24 — ECS에서 스프라이트 시트 이펙트 만들기 (MaterialProperty + DOTS Instancing 셰이더)
 
 - `SpriteRenderer`는 Entities Graphics가 **companion GameObject**로 bake한다(`SpriteRendererCompanionBaker`). 엔티티마다 숨은 GameObject가 생기고, sprite 교체는 managed 코드라 Burst를 쓸 수 없다. 많이 생성되는 이펙트에는 맞지 않다.

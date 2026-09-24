@@ -1,4 +1,5 @@
 using CombatSystem;
+using Sounds;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Transforms;
@@ -23,6 +24,7 @@ namespace Effects
             //End에서 만들면 첫 프레임은 프리팹 원래 위치(LocalToWorld)로 한 번 그려진다.
             var ecbSystem = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
             EntityCommandBuffer ecb = ecbSystem.CreateCommandBuffer(state.WorldUnmanaged);
+            bool hasSound = SystemAPI.TryGetSingletonBuffer(out DynamicBuffer<PlaySoundRequest> soundRequests);
 
             //DestroyEntityFlag가 켜진(=이번 프레임에 죽는) 엔티티만 쿼리된다.(WithAll은 켜진 녀석만)
             foreach (var (expEffect, localTrm)
@@ -36,6 +38,9 @@ namespace Effects
                 LocalTransform effectTrm = SystemAPI.GetComponent<LocalTransform>(prefab);
                 effectTrm.Position = localTrm.ValueRO.Position;
                 ecb.SetComponent(effect, effectTrm);
+
+                if (hasSound)
+                    soundRequests.Add(new PlaySoundRequest { Type = SoundType.Explosion });
             }
         }
     }

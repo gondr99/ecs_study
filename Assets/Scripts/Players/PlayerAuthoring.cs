@@ -9,7 +9,7 @@ namespace Players
         public float moveSpeed = 5f;
         public GameObject bulletPrefab;
         public int numOfBulletToSpawn = 50;
-        [Range(0, 10f)] public float bulletSpread = 5f;
+        [Range(0, 70f)] public float bulletSpread = 5f;
         [Min(0f)] public float fireInterval = 0.1f;
 
         private class PlayerBaker : Baker<PlayerAuthoring>

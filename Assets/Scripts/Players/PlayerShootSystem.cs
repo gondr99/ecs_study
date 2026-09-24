@@ -1,6 +1,7 @@
 using Agents;
 using CombatSystem;
 using CoreSystem;
+using Sounds;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -34,6 +35,8 @@ namespace Players
             double now = SystemAPI.Time.ElapsedTime;
             var ecbSystem = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>();
             EntityCommandBuffer ecb = ecbSystem.CreateCommandBuffer(state.WorldUnmanaged);
+            //사운드 싱글톤이 없어도 발사는 되어야 하므로 Require 대신 TryGet을 쓴다.
+            bool hasSound = SystemAPI.TryGetSingletonBuffer(out DynamicBuffer<PlaySoundRequest> soundRequests);
 
             foreach (var (shooter, localTrm) in SystemAPI.Query<RefRW<ShooterComponent>, RefRO<LocalTransform>>()
                          .WithAll<PlayerTag>())
@@ -43,6 +46,10 @@ namespace Players
                     continue;
 
                 shooter.ValueRW.NextFireTime = now + shooter.ValueRO.FireInterval;
+
+                //총알 개수와 상관없이 한 번 발사할 때 소리는 한 번만 요청한다.
+                if (hasSound)
+                    soundRequests.Add(new PlaySoundRequest { Type = SoundType.LaserShot });
 
                 for (int i = 0; i < shooter.ValueRO.NumberOfBulletSpawn; i++)
                 {

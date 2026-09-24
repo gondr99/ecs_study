@@ -1,0 +1,13 @@
+.hud-root {
+    flex-grow: 1;
+    align-items: flex-start;
+    padding: 16px 24px;
+}
+
+.score-label {
+    font-size: 36px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgb(0, 0, 0);
+}
