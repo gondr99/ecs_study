@@ -4,6 +4,6 @@ namespace CombatSystem
 {
     public struct BulletComponent : IComponentData
     {
-        public float Speed;
+        public int Damage;
     }
 }

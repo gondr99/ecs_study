@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿using Agents;
+using Unity.Entities;
 using UnityEngine;
 
 namespace CombatSystem
@@ -7,6 +8,7 @@ namespace CombatSystem
     {
         public float bulletSpeed;
         public float bulletLifeTime;
+        public int damage;
 
         private class BulletAuthoringBaker : Baker<BulletAuthoring>
         {
@@ -20,8 +22,15 @@ namespace CombatSystem
                 
                 AddComponent(entity, new BulletComponent
                 {
-                    Speed = authoring.bulletSpeed
+                    Damage = authoring.damage
                 });
+                
+                AddComponent(entity, new MoveSpeedComponent
+                {
+                    Value = authoring.bulletSpeed
+                });
+                
+                AddComponent<MoveDirectionComponent>(entity);
                 
                 AddComponent<DestroyEntityFlag>(entity);
                 SetComponentEnabled<DestroyEntityFlag>(entity, false);

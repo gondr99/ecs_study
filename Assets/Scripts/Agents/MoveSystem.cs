@@ -5,7 +5,7 @@ using Unity.Physics;
 
 namespace Agents
 {
-    public partial struct AgentMoveSystem : ISystem
+    public partial struct MoveSystem : ISystem
     {
         [BurstCompile]
         public void OnUpdate(ref SystemState state)

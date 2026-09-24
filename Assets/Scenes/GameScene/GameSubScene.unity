@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 1479936106}
   - component: {fileID: 1479936104}
   - component: {fileID: 1479936107}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -293,6 +293,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Agents.AgentAuthoring
   moveSpeed: 4
+  maxHitPoint: 30
+  deathEffectPrefab: {fileID: 2688923977752276751, guid: 2fc5af60a7fdc1e4c9681ffd6d1bd04e, type: 3}
 --- !u!1 &1530579968
 GameObject:
   m_ObjectHideFlags: 0
@@ -307,7 +309,7 @@ GameObject:
   - component: {fileID: 1530579972}
   - component: {fileID: 1530579973}
   - component: {fileID: 1530579974}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -399,7 +401,7 @@ BoxCollider:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -450,6 +452,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Agents.AgentAuthoring
   moveSpeed: 2
+  maxHitPoint: 30
+  deathEffectPrefab: {fileID: 2688923977752276751, guid: 2fc5af60a7fdc1e4c9681ffd6d1bd04e, type: 3}
 --- !u!114 &1530579974
 MonoBehaviour:
   m_ObjectHideFlags: 0

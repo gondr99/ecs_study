@@ -10,6 +10,32 @@ Unity 6.0 ECS를 대략 알고 있는 상태에서, 6.6(Editor 6000.6.2f1, `com.
 
 ---
 
+### 2026-09-24 — ECS에서 스프라이트 시트 이펙트 만들기 (MaterialProperty + DOTS Instancing 셰이더)
+
+- `SpriteRenderer`는 Entities Graphics가 **companion GameObject**로 bake한다(`SpriteRendererCompanionBaker`). 엔티티마다 숨은 GameObject가 생기고, sprite 교체는 managed 코드라 Burst를 쓸 수 없다. 많이 생성되는 이펙트에는 맞지 않다.
+- 순수 ECS 방식: Quad `MeshRenderer` + 커스텀 셰이더로 bake하면 BatchRendererGroup으로 그려진다. 프레임 번호는 `[MaterialProperty("_Frame")]`을 붙인 `IComponentData`에 넣는다. Burst Job에서 값만 바꾸면 Entities Graphics가 GPU로 올린다(MaterialPropertyBlock을 대신함).
+- 셰이더를 **Shader Graph**로 만들 때: 엔티티별로 받을 프로퍼티(`_Frame`)는 Graph Inspector > Node Settings > **Override Property Declaration**을 켜고 `Hybrid Per Instance`로 둔다. 이렇게 해야 `UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)` 블록에 들어간다. 기본값(Per Material)으로 두면 `[MaterialProperty]` 컴포넌트 값이 **에러 없이 무시된다**.
+- 2D Renderer + Entities Graphics에서 쓸 Shader Graph target은 **Universal > Unlit**이다. 2D Renderer는 `Universal2D`, `SRPDefaultUnlit` LightMode만 그린다. Sprite Unlit/Lit target은 `Universal2D` 패스는 있지만 DOTS.hlsl(DOTS_INSTANCING_ON)을 넣지 않아서 BRG로 그릴 수 없다. URP Unlit target은 LightMode가 없어서(SRPDefaultUnlit) 2D Renderer가 그리고, DOTS Instancing도 포함한다. 단, `Keep Lighting Variants`를 켜면 LightMode가 UniversalForward로 바뀌어 2D Renderer에서 안 보인다.
+- 문서상 URP는 Forward+만 공식 지원한다. 2D Renderer는 위 조건에서 동작을 확인했다.
+- 스폰 타이밍: 이펙트를 `EndSimulation` ECB로 만들면 이번 프레임 TransformSystemGroup이 이미 끝났으므로 첫 렌더링이 프리팹의 LocalToWorld(원점)로 나간다. `BeginSimulation` ECB로 만들어서 다음 프레임 Transform 계산 뒤에 그려지게 했다.
+
+### 2026-09-24 — Unity Physics의 Kinematic body는 PhysicsVelocity로 움직인다 (PhysX와 다름)
+
+- Kinematic Rigidbody를 bake하면 `PhysicsVelocity` + `PhysicsMass`(inverse mass/inertia = 0) + `PhysicsGravityFactor = 0`이 붙는다. solver가 속도를 적분해서 움직이고, 충돌해도 밀려나지 않는다.
+- PhysX에서는 kinematic의 velocity가 무시되고 `MovePosition`을 써야 했지만, Unity Physics에서는 **kinematic에 velocity를 넣는 것이 정석**이다.
+- Rigidbody가 없는 collider는 static body가 된다. static body를 `LocalTransform`으로 매 프레임 옮기면 static BVH가 매 step 다시 만들어진다.
+- velocity로 움직이면 이동이 fixed step 안에서 일어나서 물리 판정과 타이밍이 맞는다. `LocalTransform`을 직접 수정하면 teleport로 처리된다.
+- 회전 잠금: `PhysicsMass.InverseInertia = 0`으로 둔다. 각가속도 = I⁻¹·torque라서 inverse가 0이면 회전 관성이 무한대인 것과 같다. `InverseMass = 0`(kinematic)의 회전 버전이다. baking이 Rigidbody Freeze Rotation을 반영하지 않으므로 직접 설정한다.
+- 단, kinematic끼리, kinematic과 static 사이에는 **충돌 응답이 없다**(trigger 이벤트는 발생). 벽에 막히거나 서로 밀어내야 하는 캐릭터는 dynamic + gravity off + velocity 구동으로 두고, 총알처럼 판정만 필요한 것만 kinematic으로 한다.
+
+### 2026-09-24 — Unity Physics에서 Collider Layer Overrides가 적용되는 방식
+
+`ColliderBakingSystem.ProduceCollisionFilter`와 `CollisionFilter.IsCollisionEnabled`로 확인한 내용.
+
+- Baking 결과: `BelongsTo = 1 << layer`, `CollidesWith = (Layer Collision Matrix) | includeLayers(Collider+Rigidbody) & ~excludeLayers`. **`layerOverridePriority`는 Baking에서 무시됨.**
+- 충돌 판정은 **양방향 AND**: `(A.BelongsTo & B.CollidesWith) != 0 && (B.BelongsTo & A.CollidesWith) != 0`. 그래서 한쪽(Bullet)에만 Include Layers를 넣고 상대(Enemy)의 matrix/override에 Bullet이 빠져 있으면 Trigger 이벤트가 생기지 않음. PhysX처럼 priority로 한쪽 설정이 이기는 방식이 아님.
+- 해결: Layer Collision Matrix에서 두 layer를 체크하거나, **양쪽 Collider 모두**에 Include Layers를 설정함.
+
 ### 2026-09-23 — IJobEntity 내부 동작 (6.0 대비 변경 없음)
 
 소스 제너레이터 코드(`JobEntityGenerator/`)로 확인한 내용.

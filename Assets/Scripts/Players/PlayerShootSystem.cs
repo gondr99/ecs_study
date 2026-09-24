@@ -1,3 +1,4 @@
+using Agents;
 using CombatSystem;
 using CoreSystem;
 using Unity.Burst;
@@ -55,6 +56,10 @@ namespace Players
                     quaternion fireRot = math.mul(trm.Rotation, quaternion.RotateZ(spreadRad));
                     
                     ecb.SetComponent(newBullet, LocalTransform.FromPositionRotation(spawnPosition, fireRot));
+                    ecb.SetComponent(newBullet, new MoveDirectionComponent
+                    {
+                        Value = math.mul(fireRot, math.up()).xy
+                    });
                 }
 
             }
